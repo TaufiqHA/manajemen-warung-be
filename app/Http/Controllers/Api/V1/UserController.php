@@ -64,8 +64,8 @@ class UserController extends Controller
 
         $targetUser = User::where('warung_id', $authUser->warung_id)->findOrFail($id);
 
-        if ($authUser->role === 'ADMIN' && in_array($targetUser->role, ['OWNER', 'ADMIN'])) {
-            return $this->errorResponse('Admin hanya bisa mengedit user Kasir atau Karyawan.', null, 403);
+        if (in_array($authUser->role, ['ADMIN_TOKO', 'ADMIN_KANTOR']) && $targetUser->role === 'OWNER') {
+            return $this->errorResponse('Admin tidak bisa mengedit Owner.', null, 403);
         }
 
         $targetUser->update($request->validated());

@@ -11,10 +11,8 @@ class UserResource extends JsonResource
     {
         $roleMap = [
             'OWNER' => 'Owner',
-            'ADMIN' => 'Admin',
+            'ADMIN_TOKO' => 'Admin Toko',
             'ADMIN_KANTOR' => 'Admin Kantor',
-            'KASIR' => 'Kasir',
-            'KARYAWAN' => 'Karyawan',
         ];
         $formattedRole = $roleMap[strtoupper($this->role)] ?? $this->role;
 

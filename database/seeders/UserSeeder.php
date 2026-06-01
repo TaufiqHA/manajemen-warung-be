@@ -47,7 +47,7 @@ class UserSeeder extends Seeder
             'email' => 'admin@warung.com',
             'password' => $defaultPassword,
             'phone' => '082222222222',
-            'role' => 'ADMIN',
+            'role' => 'ADMIN_TOKO',
             'is_active' => true,
         ]);
 
@@ -63,6 +63,6 @@ class UserSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        $this->command->info('User Seeder berhasil dijalankan! Password default: password123');
+        $this->command->info('User Seeder berhasil dijalankan! Password default: password');
     }
 }

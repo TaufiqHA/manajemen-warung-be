@@ -11,6 +11,7 @@ use App\Models\Transaction;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TransactionController extends Controller
 {
@@ -32,7 +33,7 @@ class TransactionController extends Controller
             $query->whereMonth('created_at', now()->month)
                   ->whereYear('created_at', now()->year);
         } elseif ($filter === 'Bulan Lalu') {
-            $lastMonth = now()->subMonth();
+            $lastMonth = now()->subMonthNoOverflow();
             $query->whereMonth('created_at', $lastMonth->month)
                   ->whereYear('created_at', $lastMonth->year);
         }
@@ -41,13 +42,14 @@ class TransactionController extends Controller
 
         $flatItems = [];
         foreach ($transactions as $transaction) {
+            $isCancelled = $transaction->status === 'CANCELLED';
             foreach ($transaction->items as $item) {
                 $flatItems[] = [
                     'idTransaksi' => $transaction->transaction_code,
-                    'id' => (string) $item->id,
-                    'namaItem' => $item->product_name,
+                    'id' => 'PRD-' . str_pad($item->product_id, 3, '0', STR_PAD_LEFT),
+                    'namaItem' => $isCancelled ? "❌ [BATAL] {$item->product_name}" : $item->product_name,
                     'jumlah' => (int) $item->quantity,
-                    'harga' => (float) $item->unit_price,
+                    'harga' => $isCancelled ? 0.0 : (float) $item->unit_price,
                     'waktu' => $transaction->created_at->toISOString(),
                     'dicatatOleh' => $transaction->cashier ? $transaction->cashier->name : 'System',
                     'catatan' => $item->catatan ?? '',
@@ -221,7 +223,11 @@ class TransactionController extends Controller
 
         $transaction = Transaction::with('items')
             ->where('warung_id', $user->warung_id)
-            ->findOrFail($id);
+            ->where(function ($query) use ($id) {
+                $query->where('id', $id)
+                      ->orWhere('transaction_code', $id);
+            })
+            ->firstOrFail();
 
         if ($transaction->status !== 'COMPLETED') {
             return $this->errorResponse('Hanya transaksi berstatus COMPLETED yang bisa dibatalkan.', null, 400);
@@ -243,10 +249,23 @@ class TransactionController extends Controller
 
             DB::commit();
 
+            Log::info('Transaksi berhasil dibatalkan.', [
+                'transaction_id' => $transaction->id,
+                'transaction_code' => $transaction->transaction_code,
+                'cancelled_by_user_id' => $user->id,
+                'reason' => $request->reason
+            ]);
+
             return $this->successResponse(new TransactionResource($transaction), 'Transaksi berhasil dibatalkan');
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            Log::error('Gagal membatalkan transaksi.', [
+                'transaction_id_or_code' => $id,
+                'user_id' => $user->id,
+                'error_message' => $e->getMessage()
+            ]);
 
             return $this->errorResponse('Gagal membatalkan transaksi.', ['error' => [$e->getMessage()]], 500);
         }

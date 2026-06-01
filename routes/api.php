@@ -43,12 +43,12 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
 
         // Dashboard
-        Route::middleware('role:OWNER,ADMIN,KASIR')->group(function () {
+        Route::middleware('role:OWNER,ADMIN_TOKO,ADMIN_KANTOR')->group(function () {
             Route::get('/dashboard', [DashboardController::class, 'index']);
         });
 
         // Reports
-        Route::middleware('role:OWNER,ADMIN')->group(function () {
+        Route::middleware('role:OWNER,ADMIN_TOKO,ADMIN_KANTOR')->group(function () {
             Route::get('/reports/sales', [ReportController::class, 'sales']);
             Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
         });
@@ -61,7 +61,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // Categories
-        Route::middleware('role:OWNER,ADMIN')->group(function () {
+        Route::middleware('role:OWNER,ADMIN_TOKO,ADMIN_KANTOR')->group(function () {
             Route::post('/categories', [CategoryController::class, 'store']);
             Route::put('/categories/{id}', [CategoryController::class, 'update']);
             Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
@@ -69,7 +69,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/categories', [CategoryController::class, 'index']);
 
         // Products
-        Route::middleware('role:OWNER,ADMIN')->group(function () {
+        Route::middleware('role:OWNER,ADMIN_TOKO,ADMIN_KANTOR')->group(function () {
             Route::post('/products', [ProductController::class, 'store']);
             Route::put('/products/{id}', [ProductController::class, 'update']);
             Route::delete('/products/{id}', [ProductController::class, 'destroy']);
@@ -80,19 +80,19 @@ Route::prefix('v1')->group(function () {
         Route::get('/products/{id}', [ProductController::class, 'show']);
 
         // Transactions
-        Route::middleware('role:OWNER,ADMIN,KASIR')->group(function () {
+        Route::middleware('role:OWNER,ADMIN_TOKO,ADMIN_KANTOR')->group(function () {
             Route::get('/transactions', [TransactionController::class, 'index']);
             Route::post('/transactions', [TransactionController::class, 'store']);
             Route::get('/transactions/{id}', [TransactionController::class, 'show']);
         });
 
         // Transaction Cancellation (OWNER only)
-        Route::middleware('role:OWNER')->group(function () {
+        Route::middleware('role:ADMIN_TOKO')->group(function () {
             Route::patch('/transactions/{id}/cancel', [TransactionController::class, 'cancel']);
         });
 
         // Expenses
-        Route::middleware('role:OWNER,ADMIN')->group(function () {
+        Route::middleware('role:OWNER,ADMIN_TOKO,ADMIN_KANTOR')->group(function () {
             Route::get('/expenses', [ExpenseController::class, 'index']);
             Route::post('/expenses', [ExpenseController::class, 'store']);
             Route::put('/expenses/{id}', [ExpenseController::class, 'update']);
@@ -100,7 +100,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // Users Management
-        Route::middleware('role:OWNER,ADMIN')->group(function () {
+        Route::middleware('role:OWNER,ADMIN_TOKO,ADMIN_KANTOR')->group(function () {
             Route::get('/users', [UserController::class, 'index']);
             Route::post('/users', [UserController::class, 'store']);
             Route::put('/users/{id}', [UserController::class, 'update']);

@@ -89,11 +89,9 @@ class AuthController extends Controller
         $tokenResult = $user->createToken('auth_token', ['*'], now()->addDays(7));
 
         $roleMap = [
-            'OWNER' => 'Owner',
-            'ADMIN' => 'Admin',
-            'ADMIN_KANTOR' => 'Admin Kantor',
-            'KASIR' => 'Kasir',
-            'KARYAWAN' => 'Karyawan',
+            'OWNER' => 'OWNER',
+            'ADMIN_TOKO' => 'ADMIN_TOKO',
+            'ADMIN_KANTOR' => 'ADMIN_KANTOR',
         ];
         $formattedRole = $roleMap[strtoupper($user->role)] ?? $user->role;
 

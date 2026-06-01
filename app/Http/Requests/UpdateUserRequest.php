@@ -18,7 +18,7 @@ class UpdateUserRequest extends FormRequest
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
-            'role' => ['sometimes', 'required', 'in:ADMIN,KASIR,KARYAWAN'],
+            'role' => ['sometimes', 'required', 'in:OWNER,ADMIN_TOKO,ADMIN_KANTOR'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
