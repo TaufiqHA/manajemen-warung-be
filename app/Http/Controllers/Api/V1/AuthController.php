@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ChangePasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
-use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\Warung;
 use App\Traits\ApiResponse;
@@ -72,7 +71,7 @@ class AuthController extends Controller
         if (! Auth::attempt([$loginField => $loginValue, 'password' => $request->password])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Username atau password salah'
+                'message' => 'Username atau password salah',
             ], 401);
         }
 
@@ -81,7 +80,7 @@ class AuthController extends Controller
         if (! $user->is_active) {
             return response()->json([
                 'success' => false,
-                'message' => 'Akun anda telah dinonaktifkan.'
+                'message' => 'Akun anda telah dinonaktifkan.',
             ], 403);
         }
 
@@ -103,13 +102,13 @@ class AuthController extends Controller
                 'token_type' => 'Bearer',
                 'expires_at' => $tokenResult->accessToken->expires_at,
                 'user' => [
-                    'id' => 'USR-' . str_pad($user->id, 3, '0', STR_PAD_LEFT),
+                    'id' => 'USR-'.str_pad($user->id, 3, '0', STR_PAD_LEFT),
                     'name' => $user->name,
                     'username' => $user->username ?? $user->email,
                     'role' => $formattedRole,
                     'email' => $user->email,
-                ]
-            ]
+                ],
+            ],
         ], 200);
     }
 
@@ -119,7 +118,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Logout berhasil'
+            'message' => 'Logout berhasil',
         ]);
     }
 

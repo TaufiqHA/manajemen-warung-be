@@ -8,13 +8,15 @@ use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Requests\UpdateProductStockRequest;
 use App\Http\Resources\ProductResource;
+use App\Models\Category;
 use App\Models\Product;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
-    use \App\Traits\ApiResponse;
+    use ApiResponse;
 
     public function index(Request $request)
     {
@@ -46,7 +48,7 @@ class ProductController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => ProductResource::collection($products)
+            'data' => ProductResource::collection($products),
         ]);
     }
 
@@ -62,7 +64,7 @@ class ProductController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new ProductResource($product)
+            'data' => new ProductResource($product),
         ]);
     }
 
@@ -98,7 +100,7 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Barang berhasil ditambahkan',
-            'data' => new ProductResource($product)
+            'data' => new ProductResource($product),
         ], 201);
     }
 
@@ -134,7 +136,7 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Barang berhasil diperbarui',
-            'data' => new ProductResource($product)
+            'data' => new ProductResource($product),
         ]);
     }
 
@@ -156,7 +158,7 @@ class ProductController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Barang berhasil dihapus'
+            'message' => 'Barang berhasil dihapus',
         ]);
     }
 

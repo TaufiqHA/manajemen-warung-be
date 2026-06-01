@@ -15,7 +15,7 @@ class ExpenseResource extends JsonResource
         $dateObj = now()->parse($this->date);
         $dayName = $days[$dateObj->format('l')] ?? $dateObj->format('l');
         $monthName = $months[$dateObj->format('F')] ?? $dateObj->format('F');
-        $formattedDate = $dayName . ', ' . $dateObj->format('d') . ' ' . $monthName . ' ' . $dateObj->format('Y');
+        $formattedDate = $dayName.', '.$dateObj->format('d').' '.$monthName.' '.$dateObj->format('Y');
 
         $categoryMap = [
             'OPERATIONAL' => 'Operasional',
@@ -25,12 +25,12 @@ class ExpenseResource extends JsonResource
         $formattedCategory = $categoryMap[strtoupper($this->category)] ?? $this->category;
 
         return [
-            'id' => 'EXP-' . str_pad($this->id, 3, '0', STR_PAD_LEFT),
+            'id' => 'EXP-'.str_pad($this->id, 3, '0', STR_PAD_LEFT),
             'jumlah' => (float) $this->amount,
             'kategori' => $formattedCategory,
             'catatan' => $this->note ?? '',
             'tanggal' => $formattedDate,
-            
+
             // Legacy fields for backward compatibility with existing tests
             'title' => $this->title,
             'amount' => $this->amount,

@@ -17,7 +17,7 @@ class UserResource extends JsonResource
         $formattedRole = $roleMap[strtoupper($this->role)] ?? $this->role;
 
         return [
-            'id' => 'USR-' . str_pad($this->id, 3, '0', STR_PAD_LEFT),
+            'id' => 'USR-'.str_pad($this->id, 3, '0', STR_PAD_LEFT),
             'name' => $this->name,
             'username' => $this->username ?? $this->email,
             'role' => $formattedRole,

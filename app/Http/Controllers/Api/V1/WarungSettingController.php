@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateWarungSettingRequest;
 use App\Http\Requests\WarungLogoRequest;
 use App\Http\Resources\WarungResource;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class WarungSettingController extends Controller
 {
-    use \App\Traits\ApiResponse;
+    use ApiResponse;
 
     public function show(Request $request)
     {

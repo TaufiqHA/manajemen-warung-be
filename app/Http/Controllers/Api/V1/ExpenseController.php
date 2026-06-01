@@ -7,11 +7,12 @@ use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
 use App\Http\Resources\ExpenseResource;
 use App\Models\Expense;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
-    use \App\Traits\ApiResponse;
+    use ApiResponse;
 
     public function index(Request $request)
     {
@@ -26,18 +27,18 @@ class ExpenseController extends Controller
             $query->whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()]);
         } elseif ($filter === 'Bulan Ini') {
             $query->whereMonth('date', now()->month)
-                  ->whereYear('date', now()->year);
+                ->whereYear('date', now()->year);
         } elseif ($filter === 'Bulan Lalu') {
             $lastMonth = now()->subMonth();
             $query->whereMonth('date', $lastMonth->month)
-                  ->whereYear('date', $lastMonth->year);
+                ->whereYear('date', $lastMonth->year);
         }
 
         $expenses = $query->orderBy('date', 'desc')->get();
 
         return response()->json([
             'success' => true,
-            'data' => ExpenseResource::collection($expenses)
+            'data' => ExpenseResource::collection($expenses),
         ]);
     }
 
@@ -53,7 +54,7 @@ class ExpenseController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new ExpenseResource($expense)
+            'data' => new ExpenseResource($expense),
         ]);
     }
 
@@ -62,7 +63,7 @@ class ExpenseController extends Controller
         $user = $request->user();
 
         $amount = $request->input('jumlah') ?? $request->input('amount');
-        
+
         $kategoriInput = $request->input('kategori') ?? $request->input('category') ?? 'LAINNYA';
         $categoryMap = [
             'BAHAN BAKU' => 'BAHAN_BAKU',
@@ -100,7 +101,7 @@ class ExpenseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pengeluaran berhasil ditambahkan',
-            'data' => new ExpenseResource($expense)
+            'data' => new ExpenseResource($expense),
         ], 201);
     }
 
@@ -155,7 +156,7 @@ class ExpenseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pengeluaran berhasil diperbarui',
-            'data' => new ExpenseResource($expense)
+            'data' => new ExpenseResource($expense),
         ]);
     }
 
@@ -172,7 +173,7 @@ class ExpenseController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Pengeluaran berhasil dihapus'
+            'message' => 'Pengeluaran berhasil dihapus',
         ]);
     }
 }

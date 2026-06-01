@@ -15,6 +15,7 @@ class CategoryTest extends TestCase
     use RefreshDatabase;
 
     protected $user;
+
     protected $warung;
 
     protected function setUp(): void
@@ -41,7 +42,7 @@ class CategoryTest extends TestCase
             'name' => 'Makanan',
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/categories');
 
         $response->assertStatus(200)
@@ -52,7 +53,7 @@ class CategoryTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/categories', [
                 'name' => 'Minuman',
                 'description' => 'Segala jenis minuman',
@@ -74,8 +75,8 @@ class CategoryTest extends TestCase
             'name' => 'Lama',
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->putJson('/api/v1/categories/' . $category->id, [
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->putJson('/api/v1/categories/'.$category->id, [
                 'name' => 'Baru',
             ]);
 
@@ -103,8 +104,8 @@ class CategoryTest extends TestCase
             'stock' => 10,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->deleteJson('/api/v1/categories/' . $category->id);
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/v1/categories/'.$category->id);
 
         $response->assertStatus(422);
         $this->assertDatabaseHas('categories', ['id' => $category->id]);
@@ -119,8 +120,8 @@ class CategoryTest extends TestCase
             'name' => 'Kategori Kosong',
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->deleteJson('/api/v1/categories/' . $category->id);
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/v1/categories/'.$category->id);
 
         $response->assertStatus(200);
         $this->assertDatabaseMissing('categories', ['id' => $category->id]);

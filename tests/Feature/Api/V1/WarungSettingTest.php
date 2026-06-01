@@ -15,6 +15,7 @@ class WarungSettingTest extends TestCase
     use RefreshDatabase;
 
     protected $user;
+
     protected $warung;
 
     protected function setUp(): void
@@ -40,7 +41,7 @@ class WarungSettingTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/settings/warung');
 
         $response->assertStatus(200)
@@ -51,7 +52,7 @@ class WarungSettingTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->putJson('/api/v1/settings/warung', [
                 'name' => 'Updated Warung',
                 'address' => 'New Address',
@@ -75,7 +76,7 @@ class WarungSettingTest extends TestCase
 
         $file = UploadedFile::fake()->image('logo.jpg');
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/settings/warung/logo', [
                 'logo' => $file,
             ]);
@@ -93,12 +94,12 @@ class WarungSettingTest extends TestCase
             'name' => 'Staff',
             'email' => 'staff@example.com',
             'password' => Hash::make('password'),
-            'role' => 'KASIR',
+            'role' => 'ADMIN_TOKO',
         ]);
 
         $token = $staff->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->putJson('/api/v1/settings/warung', [
                 'name' => 'Hack Name',
             ]);

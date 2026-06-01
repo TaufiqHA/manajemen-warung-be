@@ -12,7 +12,7 @@ class ProductResource extends JsonResource
         $categoryName = $this->category ? $this->category->name : 'Lainnya';
 
         return [
-            'id' => 'PRD-' . str_pad($this->id, 3, '0', STR_PAD_LEFT),
+            'id' => 'PRD-'.str_pad($this->id, 3, '0', STR_PAD_LEFT),
             'name' => $this->name,
             'category' => $categoryName,
             'price' => (float) $this->price,

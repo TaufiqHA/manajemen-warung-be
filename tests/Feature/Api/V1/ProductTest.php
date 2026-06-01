@@ -17,7 +17,9 @@ class ProductTest extends TestCase
     use RefreshDatabase;
 
     protected $user;
+
     protected $warung;
+
     protected $category;
 
     protected function setUp(): void
@@ -51,7 +53,7 @@ class ProductTest extends TestCase
             'stock' => 50,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/products');
 
         $response->assertStatus(200)
@@ -62,7 +64,7 @@ class ProductTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/products', [
                 'category_id' => $this->category->id,
                 'name' => 'Mie Goreng',
@@ -89,8 +91,8 @@ class ProductTest extends TestCase
             'stock' => 10,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->putJson('/api/v1/products/' . $product->id, [
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->putJson('/api/v1/products/'.$product->id, [
                 'name' => 'Baru',
                 'price' => 2000,
             ]);
@@ -114,8 +116,8 @@ class ProductTest extends TestCase
             'stock' => 10,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->patchJson('/api/v1/products/' . $product->id . '/stock', [
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->patchJson('/api/v1/products/'.$product->id.'/stock', [
                 'stock' => 20,
             ]);
 
@@ -140,8 +142,8 @@ class ProductTest extends TestCase
 
         $file = UploadedFile::fake()->image('product.jpg');
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->postJson('/api/v1/products/' . $product->id . '/image', [
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/v1/products/'.$product->id.'/image', [
                 'image' => $file,
             ]);
 
@@ -162,8 +164,8 @@ class ProductTest extends TestCase
             'stock' => 10,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->deleteJson('/api/v1/products/' . $product->id);
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/v1/products/'.$product->id);
 
         $response->assertStatus(200);
         $this->assertDatabaseMissing('products', ['id' => $product->id]);

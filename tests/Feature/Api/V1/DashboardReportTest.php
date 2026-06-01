@@ -15,6 +15,7 @@ class DashboardReportTest extends TestCase
     use RefreshDatabase;
 
     protected $user;
+
     protected $warung;
 
     protected function setUp(): void
@@ -58,7 +59,7 @@ class DashboardReportTest extends TestCase
             'date' => now(),
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/dashboard');
 
         $response->assertStatus(200)
@@ -71,7 +72,7 @@ class DashboardReportTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/reports/sales?period=DAILY');
 
         $response->assertStatus(200)
@@ -85,7 +86,7 @@ class DashboardReportTest extends TestCase
         $dateFrom = now()->startOfMonth()->format('Y-m-d');
         $dateTo = now()->endOfMonth()->format('Y-m-d');
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson("/api/v1/reports/profit-loss?date_from={$dateFrom}&date_to={$dateTo}");
 
         $response->assertStatus(200)

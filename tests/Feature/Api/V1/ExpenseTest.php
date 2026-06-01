@@ -14,6 +14,7 @@ class ExpenseTest extends TestCase
     use RefreshDatabase;
 
     protected $user;
+
     protected $warung;
 
     protected function setUp(): void
@@ -44,7 +45,7 @@ class ExpenseTest extends TestCase
             'date' => now(),
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/expenses');
 
         $response->assertStatus(200)
@@ -55,7 +56,7 @@ class ExpenseTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/expenses', [
                 'title' => 'Air PDAM',
                 'amount' => 100000,
@@ -85,8 +86,8 @@ class ExpenseTest extends TestCase
             'date' => now(),
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->putJson('/api/v1/expenses/' . $expense->id, [
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->putJson('/api/v1/expenses/'.$expense->id, [
                 'title' => 'Baru',
                 'amount' => 2000,
             ]);
@@ -112,8 +113,8 @@ class ExpenseTest extends TestCase
             'date' => now(),
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->deleteJson('/api/v1/expenses/' . $expense->id);
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/v1/expenses/'.$expense->id);
 
         $response->assertStatus(200);
         $this->assertDatabaseMissing('expenses', ['id' => $expense->id]);

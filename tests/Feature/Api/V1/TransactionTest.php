@@ -15,7 +15,9 @@ class TransactionTest extends TestCase
     use RefreshDatabase;
 
     protected $user;
+
     protected $warung;
+
     protected $product;
 
     protected function setUp(): void
@@ -48,7 +50,7 @@ class TransactionTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/transactions', [
                 'items' => [
                     [
@@ -80,7 +82,7 @@ class TransactionTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/transactions', [
                 'items' => [
                     [
@@ -119,7 +121,7 @@ class TransactionTest extends TestCase
             'subtotal' => $this->product->price,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/transactions');
 
         $response->assertStatus(200)
@@ -154,8 +156,8 @@ class TransactionTest extends TestCase
         // Wait, for a realistic test, we should starting from 99 if it was a real transaction.
         $this->product->decrement('stock', 1);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->patchJson('/api/v1/transactions/' . $transaction->id . '/cancel', [
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->patchJson('/api/v1/transactions/'.$transaction->id.'/cancel', [
                 'reason' => 'Salah input',
             ]);
 

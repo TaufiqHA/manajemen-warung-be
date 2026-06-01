@@ -13,6 +13,7 @@ class UserTest extends TestCase
     use RefreshDatabase;
 
     protected $user;
+
     protected $warung;
 
     protected function setUp(): void
@@ -34,7 +35,7 @@ class UserTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/users/me');
 
         $response->assertStatus(200)
@@ -45,7 +46,7 @@ class UserTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->putJson('/api/v1/users/me', [
                 'name' => 'Updated Name',
                 'phone' => '0899999999',
@@ -67,10 +68,10 @@ class UserTest extends TestCase
             'name' => 'Staff 1',
             'email' => 'staff1@example.com',
             'password' => Hash::make('password'),
-            'role' => 'KASIR',
+            'role' => 'ADMIN_TOKO',
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/users');
 
         $response->assertStatus(200)
@@ -81,13 +82,13 @@ class UserTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/users', [
                 'name' => 'New Staff',
                 'email' => 'newstaff@example.com',
                 'password' => 'password',
                 'password_confirmation' => 'password',
-                'role' => 'KASIR',
+                'role' => 'ADMIN_TOKO',
                 'phone' => '0812345678',
             ]);
 
@@ -107,11 +108,11 @@ class UserTest extends TestCase
             'name' => 'Staff to Delete',
             'email' => 'delete@example.com',
             'password' => Hash::make('password'),
-            'role' => 'KASIR',
+            'role' => 'ADMIN_TOKO',
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->deleteJson('/api/v1/users/' . $staff->id);
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/v1/users/'.$staff->id);
 
         $response->assertStatus(200);
         $this->assertDatabaseMissing('users', ['id' => $staff->id]);
@@ -121,8 +122,8 @@ class UserTest extends TestCase
     {
         $token = $this->user->createToken('test_token')->plainTextToken;
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->deleteJson('/api/v1/users/' . $this->user->id);
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/v1/users/'.$this->user->id);
 
         $response->assertStatus(400);
         $this->assertDatabaseHas('users', ['id' => $this->user->id]);
