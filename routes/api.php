@@ -39,6 +39,11 @@ Route::prefix('v1')->group(function () {
         Route::put('/me', [UserController::class, 'updateProfile']);
     });
 
+    // Export Route (allows token in query parameter)
+    Route::middleware(['auth:sanctum'])->group(function () {
+        Route::get('/products/export', [ProductController::class, 'export']);
+    });
+
     // Protected Routes
     Route::middleware('auth:sanctum')->group(function () {
 

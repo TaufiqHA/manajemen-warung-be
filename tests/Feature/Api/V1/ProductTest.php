@@ -170,4 +170,118 @@ class ProductTest extends TestCase
         $response->assertStatus(200);
         $this->assertDatabaseMissing('products', ['id' => $product->id]);
     }
+
+    public function test_user_can_export_products_to_csv()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken;
+
+        // Buat dummy produk
+        Product::create([
+            'warung_id' => $this->warung->id,
+            'category_id' => $this->category->id,
+            'name' => 'Nasi Goreng Spesial',
+            'price' => 15000,
+            'stock' => 50,
+            'unit' => 'porsi',
+            'is_active' => true,
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/products/export');
+
+        // Verifikasi response status dan format JSON
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'success',
+            'message',
+            'download_url',
+        ]);
+
+        $url = $response->json('download_url');
+        $this->assertNotNull($url);
+
+        // Ambil nama file dari URL
+        $fileName = basename($url);
+        $filePath = public_path('exports/'.$fileName);
+
+        // Pastikan file tersebut benar-benar dibuat
+        $this->assertFileExists($filePath);
+
+        // Verifikasi konten file
+        $content = file_get_contents($filePath);
+        $this->assertStringContainsString('ID Produk', $content);
+        $this->assertStringContainsString('Nama Produk', $content);
+        $this->assertStringContainsString('Kategori', $content);
+        $this->assertStringContainsString('Nasi Goreng Spesial', $content);
+        $this->assertStringContainsString('15000', $content);
+
+        // Bersihkan file setelah pengujian selesai
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+    }
+
+    public function test_user_can_export_products_to_csv_using_query_token()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken;
+
+        // Buat dummy produk
+        Product::create([
+            'warung_id' => $this->warung->id,
+            'category_id' => $this->category->id,
+            'name' => 'Nasi Goreng Spesial',
+            'price' => 15000,
+            'stock' => 50,
+            'unit' => 'porsi',
+            'is_active' => true,
+        ]);
+
+        // Hit route tanpa header Authorization, tapi dengan query ?token=...
+        $response = $this->getJson('/api/v1/products/export?token='.$token);
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'success',
+            'message',
+            'download_url',
+        ]);
+
+        $url = $response->json('download_url');
+        $fileName = basename($url);
+        $filePath = public_path('exports/'.$fileName);
+
+        // Bersihkan file
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+    }
+
+    public function test_kasir_user_can_export_products_to_csv()
+    {
+        $kasir = User::create([
+            'warung_id' => $this->warung->id,
+            'name' => 'Kasir',
+            'email' => 'kasir@example.com',
+            'password' => Hash::make('password'),
+            'role' => 'KASIR',
+            'is_active' => true,
+        ]);
+
+        $token = $kasir->createToken('test_token')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/products/export');
+
+        $response->assertStatus(200);
+
+        // Bersihkan file jika dibuat
+        if ($response->status() === 200) {
+            $url = $response->json('download_url');
+            $fileName = basename($url);
+            $filePath = public_path('exports/'.$fileName);
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+        }
+    }
 }

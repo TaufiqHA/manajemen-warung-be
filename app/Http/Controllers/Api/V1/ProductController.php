@@ -195,4 +195,89 @@ class ProductController extends Controller
 
         return $this->successResponse(new ProductResource($product), 'Stok produk berhasil diperbarui');
     }
+
+    /**
+     * Ekspor daftar produk ke file CSV yang kompatibel dengan Excel.
+     */
+    public function export(Request $request)
+    {
+        $user = $request->user();
+
+        // 1. Inisialisasi query dengan filter yang sama dengan method index()
+        $query = Product::with('category')->where('warung_id', $user->warung_id);
+
+        if ($request->has('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->has('search')) {
+            $query->where('name', 'like', '%'.$request->search.'%');
+        }
+
+        if ($request->has('is_active')) {
+            $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortOrder = $request->input('sort_order', 'desc');
+
+        $allowedSorts = ['name', 'price', 'stock', 'created_at'];
+        if (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortOrder === 'asc' ? 'asc' : 'desc');
+        }
+
+        $products = $query->get();
+
+        // 2. Tentukan path file di folder public/exports
+        $fileName = 'daftar_produk_'.date('Y-m-d_H-i-s').'.csv';
+        $directory = public_path('exports');
+
+        // Buat folder jika belum ada
+        if (! file_exists($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        $filePath = $directory.'/'.$fileName;
+
+        // 3. Tulis data ke dalam file secara fisik
+        $fileHandle = fopen($filePath, 'w');
+        fprintf($fileHandle, chr(0xEF).chr(0xBB).chr(0xBF)); // Tulis BOM UTF-8
+
+        fputcsv($fileHandle, [
+            'ID Produk',
+            'Nama Produk',
+            'Kategori',
+            'Deskripsi',
+            'Harga',
+            'Stok',
+            'Satuan',
+            'Status',
+            'Tanggal Dibuat',
+        ]);
+
+        foreach ($products as $product) {
+            fputcsv($fileHandle, [
+                'PRD-'.$product->id,
+                $product->name,
+                $product->category ? $product->category->name : '-',
+                $product->description ?? '-',
+                (int) $product->price,
+                (int) $product->stock,
+                $product->unit,
+                $product->is_active ? 'Aktif' : 'Tidak Aktif',
+                $product->created_at->format('Y-m-d H:i:s'),
+            ]);
+        }
+        fclose($fileHandle);
+
+        // Pastikan file dapat dibaca oleh publik/web server
+        chmod($filePath, 0644);
+
+        // 4. Kembalikan URL publik menggunakan JSON Response
+        return response()->json([
+            'success' => true,
+            'message' => 'File berhasil dibuat',
+            'download_url' => asset('exports/'.$fileName),
+        ]);
+    }
 }
