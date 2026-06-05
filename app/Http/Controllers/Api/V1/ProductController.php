@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Exports\MenuPemesananExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProductImageRequest;
 use App\Http\Requests\StoreProductRequest;
@@ -13,6 +14,7 @@ use App\Models\Product;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ProductController extends Controller
 {
@@ -274,6 +276,45 @@ class ProductController extends Controller
         chmod($filePath, 0644);
 
         // 4. Kembalikan URL publik menggunakan JSON Response
+        return response()->json([
+            'success' => true,
+            'message' => 'File berhasil dibuat',
+            'download_url' => asset('exports/'.$fileName),
+        ]);
+    }
+
+    /**
+     * Ekspor daftar menu pemesanan ke file Excel (XLSX).
+     */
+    public function exportMenu(Request $request)
+    {
+        $user = $request->user();
+
+        $fileName = 'menu_pemesanan_'.date('Y-m-d_H-i-s').'.xlsx';
+        $directory = public_path('exports');
+
+        if (! file_exists($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        $tempPath = 'temp/'.$fileName;
+
+        // Simpan file sementara menggunakan Laravel Excel
+        Excel::store(
+            new MenuPemesananExport($user->warung_id),
+            $tempPath,
+            'local'
+        );
+
+        $destPath = $directory.'/'.$fileName;
+
+        if (Storage::disk('local')->exists($tempPath)) {
+            $content = Storage::disk('local')->get($tempPath);
+            file_put_contents($destPath, $content);
+            Storage::disk('local')->delete($tempPath);
+            chmod($destPath, 0644);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'File berhasil dibuat',

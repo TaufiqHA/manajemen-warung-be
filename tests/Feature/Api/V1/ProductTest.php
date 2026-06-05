@@ -284,4 +284,46 @@ class ProductTest extends TestCase
             }
         }
     }
+
+    public function test_user_can_export_menu_to_excel()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken;
+
+        // Buat dummy produk
+        Product::create([
+            'warung_id' => $this->warung->id,
+            'category_id' => $this->category->id,
+            'name' => 'Nasi Goreng Spesial',
+            'price' => 15000,
+            'stock' => 50,
+            'unit' => 'porsi',
+            'is_active' => true,
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/products/export-menu');
+
+        // Verifikasi response status dan format JSON
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'success',
+            'message',
+            'download_url',
+        ]);
+
+        $url = $response->json('download_url');
+        $this->assertNotNull($url);
+
+        // Ambil nama file dari URL
+        $fileName = basename($url);
+        $filePath = public_path('exports/'.$fileName);
+
+        // Pastikan file tersebut benar-benar dibuat
+        $this->assertFileExists($filePath);
+
+        // Bersihkan file setelah pengujian selesai
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+    }
 }

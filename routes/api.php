@@ -42,6 +42,7 @@ Route::prefix('v1')->group(function () {
     // Export Route (allows token in query parameter)
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/products/export', [ProductController::class, 'export']);
+        Route::get('/products/export-menu', [ProductController::class, 'exportMenu']);
     });
 
     // Protected Routes
