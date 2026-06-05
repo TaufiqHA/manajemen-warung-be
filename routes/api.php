@@ -94,6 +94,7 @@ Route::prefix('v1')->group(function () {
         // Transaction Cancellation (OWNER only)
         Route::middleware('role:ADMIN_TOKO')->group(function () {
             Route::patch('/transactions/{id}/cancel', [TransactionController::class, 'cancel']);
+            Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
         });
 
         // Expenses

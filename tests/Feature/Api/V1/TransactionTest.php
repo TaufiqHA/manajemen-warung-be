@@ -130,7 +130,15 @@ class TransactionTest extends TestCase
 
     public function test_owner_can_cancel_transaction()
     {
-        $token = $this->user->createToken('test_token')->plainTextToken;
+        $adminToko = User::create([
+            'warung_id' => $this->warung->id,
+            'name' => 'Admin Toko',
+            'email' => 'admin_toko@example.com',
+            'password' => Hash::make('password'),
+            'role' => 'ADMIN_TOKO',
+            'is_active' => true,
+        ]);
+        $token = $adminToko->createToken('test_token')->plainTextToken;
 
         $transaction = Transaction::create([
             'warung_id' => $this->warung->id,
@@ -170,5 +178,71 @@ class TransactionTest extends TestCase
             'id' => $this->product->id,
             'stock' => 100,
         ]);
+    }
+
+    public function test_admin_toko_can_delete_transaction()
+    {
+        $adminToko = User::create([
+            'warung_id' => $this->warung->id,
+            'name' => 'Admin Toko',
+            'email' => 'admin_toko_delete@example.com',
+            'password' => Hash::make('password'),
+            'role' => 'ADMIN_TOKO',
+            'is_active' => true,
+        ]);
+        $token = $adminToko->createToken('test_token')->plainTextToken;
+
+        $transaction = Transaction::create([
+            'warung_id' => $this->warung->id,
+            'cashier_id' => $this->user->id,
+            'transaction_code' => 'TRX-1',
+            'total_amount' => 5000,
+            'grand_total' => 5500,
+            'payment_method' => 'CASH',
+            'paid_amount' => 10000,
+            'change_amount' => 4500,
+            'status' => 'COMPLETED',
+        ]);
+
+        $transaction->items()->create([
+            'product_id' => $this->product->id,
+            'product_name' => $this->product->name,
+            'unit_price' => 5000,
+            'quantity' => 1,
+            'subtotal' => 5000,
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/v1/transactions/'.$transaction->id);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseMissing('transactions', [
+            'id' => $transaction->id,
+        ]);
+        $this->assertDatabaseMissing('transaction_items', [
+            'transaction_id' => $transaction->id,
+        ]);
+    }
+
+    public function test_owner_cannot_delete_transaction()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken; // user is OWNER
+
+        $transaction = Transaction::create([
+            'warung_id' => $this->warung->id,
+            'cashier_id' => $this->user->id,
+            'transaction_code' => 'TRX-1',
+            'total_amount' => 5000,
+            'grand_total' => 5500,
+            'payment_method' => 'CASH',
+            'paid_amount' => 10000,
+            'change_amount' => 4500,
+            'status' => 'COMPLETED',
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/v1/transactions/'.$transaction->id);
+
+        $response->assertStatus(403);
     }
 }

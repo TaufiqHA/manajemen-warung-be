@@ -270,4 +270,43 @@ class TransactionController extends Controller
             return $this->errorResponse('Gagal membatalkan transaksi.', ['error' => [$e->getMessage()]], 500);
         }
     }
+
+    public function destroy(Request $request, $id)
+    {
+        $user = $request->user();
+
+        // 1. Cari transaksi milik warung user
+        $transaction = Transaction::where('warung_id', $user->warung_id)
+            ->where(function ($query) use ($id) {
+                $query->where('id', $id)
+                    ->orWhere('transaction_code', $id);
+            })
+            ->firstOrFail();
+
+        try {
+            DB::beginTransaction();
+
+            // 2. Hapus detail item (jika relasi di database tidak memakai on delete cascade)
+            $transaction->items()->delete();
+
+            // 3. Hapus data transaksi utama
+            $transaction->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data transaksi berhasil dihapus secara permanen',
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus transaksi',
+                'error' => [$e->getMessage()],
+            ], 500);
+        }
+    }
 }
