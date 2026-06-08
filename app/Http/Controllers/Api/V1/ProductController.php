@@ -24,26 +24,31 @@ class ProductController extends Controller
     {
         $user = $request->user();
 
-        $query = Product::with('category')->where('warung_id', $user->warung_id);
+        $query = Product::with('category')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->where('products.warung_id', $user->warung_id)
+            ->select('products.*');
 
         if ($request->has('category_id')) {
-            $query->where('category_id', $request->category_id);
+            $query->where('products.category_id', $request->category_id);
         }
 
         if ($request->has('search')) {
-            $query->where('name', 'like', '%'.$request->search.'%');
+            $query->where('products.name', 'like', '%'.$request->search.'%');
         }
 
         if ($request->has('is_active')) {
-            $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
+            $query->where('products.is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
         }
 
-        $sortBy = $request->input('sort_by', 'created_at');
+        $sortBy = $request->input('sort_by');
         $sortOrder = $request->input('sort_order', 'desc');
 
         $allowedSorts = ['name', 'price', 'stock', 'created_at'];
-        if (in_array($sortBy, $allowedSorts)) {
-            $query->orderBy($sortBy, $sortOrder === 'asc' ? 'asc' : 'desc');
+        if ($sortBy && in_array($sortBy, $allowedSorts)) {
+            $query->orderBy('products.'.$sortBy, $sortOrder === 'asc' ? 'asc' : 'desc');
+        } else {
+            $query->orderBy('categories.order', 'asc')->orderBy('products.order', 'asc')->orderBy('products.created_at', 'desc');
         }
 
         $products = $query->get();
@@ -198,6 +203,30 @@ class ProductController extends Controller
         return $this->successResponse(new ProductResource($product), 'Stok produk berhasil diperbarui');
     }
 
+    public function updateLayout(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'products' => 'required|array',
+            'products.*.id' => 'required',
+            'products.*.order' => 'required|integer',
+        ]);
+
+        foreach ($request->products as $prod) {
+            $id = $prod['id'];
+            if (is_string($id) && str_starts_with($id, 'PRD-')) {
+                $id = (int) substr($id, 4);
+            }
+
+            Product::where('warung_id', $user->warung_id)
+                ->where('id', $id)
+                ->update(['order' => $prod['order']]);
+        }
+
+        return $this->successResponse(null, 'Tata letak menu berhasil disimpan');
+    }
+
     /**
      * Ekspor daftar produk ke file CSV yang kompatibel dengan Excel.
      */
@@ -206,26 +235,31 @@ class ProductController extends Controller
         $user = $request->user();
 
         // 1. Inisialisasi query dengan filter yang sama dengan method index()
-        $query = Product::with('category')->where('warung_id', $user->warung_id);
+        $query = Product::with('category')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->where('products.warung_id', $user->warung_id)
+            ->select('products.*');
 
         if ($request->has('category_id')) {
-            $query->where('category_id', $request->category_id);
+            $query->where('products.category_id', $request->category_id);
         }
 
         if ($request->has('search')) {
-            $query->where('name', 'like', '%'.$request->search.'%');
+            $query->where('products.name', 'like', '%'.$request->search.'%');
         }
 
         if ($request->has('is_active')) {
-            $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
+            $query->where('products.is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
         }
 
-        $sortBy = $request->input('sort_by', 'created_at');
+        $sortBy = $request->input('sort_by');
         $sortOrder = $request->input('sort_order', 'desc');
 
         $allowedSorts = ['name', 'price', 'stock', 'created_at'];
-        if (in_array($sortBy, $allowedSorts)) {
-            $query->orderBy($sortBy, $sortOrder === 'asc' ? 'asc' : 'desc');
+        if ($sortBy && in_array($sortBy, $allowedSorts)) {
+            $query->orderBy('products.'.$sortBy, $sortOrder === 'asc' ? 'asc' : 'desc');
+        } else {
+            $query->orderBy('categories.order', 'asc')->orderBy('products.order', 'asc')->orderBy('products.created_at', 'desc');
         }
 
         $products = $query->get();

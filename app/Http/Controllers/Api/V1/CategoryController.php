@@ -20,7 +20,8 @@ class CategoryController extends Controller
 
         $categories = Category::withCount('products')
             ->where('warung_id', $user->warung_id)
-            ->latest()
+            ->orderBy('order', 'asc')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         return $this->successResponse(CategoryResource::collection($categories), 'Daftar kategori berhasil diambil');
@@ -60,5 +61,24 @@ class CategoryController extends Controller
         $category->delete();
 
         return $this->successResponse(null, 'Kategori berhasil dihapus');
+    }
+
+    public function updateLayout(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'categories' => 'required|array',
+            'categories.*.name' => 'required|string',
+            'categories.*.order' => 'required|integer',
+        ]);
+
+        foreach ($request->categories as $cat) {
+            Category::where('warung_id', $user->warung_id)
+                ->where('name', $cat['name'])
+                ->update(['order' => $cat['order']]);
+        }
+
+        return $this->successResponse(null, 'Tata letak kategori berhasil disimpan');
     }
 }

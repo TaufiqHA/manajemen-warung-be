@@ -68,6 +68,7 @@ Route::prefix('v1')->group(function () {
 
         // Categories
         Route::middleware('role:OWNER,ADMIN_TOKO,ADMIN_KANTOR')->group(function () {
+            Route::post('/categories/layout', [CategoryController::class, 'updateLayout']);
             Route::post('/categories', [CategoryController::class, 'store']);
             Route::put('/categories/{id}', [CategoryController::class, 'update']);
             Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
@@ -76,6 +77,7 @@ Route::prefix('v1')->group(function () {
 
         // Products
         Route::middleware('role:OWNER,ADMIN_TOKO,ADMIN_KANTOR')->group(function () {
+            Route::post('/products/layout', [ProductController::class, 'updateLayout']);
             Route::post('/products', [ProductController::class, 'store']);
             Route::put('/products/{id}', [ProductController::class, 'update']);
             Route::delete('/products/{id}', [ProductController::class, 'destroy']);
