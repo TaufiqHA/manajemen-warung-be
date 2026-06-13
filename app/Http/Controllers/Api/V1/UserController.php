@@ -63,13 +63,20 @@ class UserController extends Controller
     {
         $authUser = $request->user();
 
-        $targetUser = User::where('warung_id', $authUser->warung_id)->findOrFail($id);
+        $numericId = (int) str_replace('USR-', '', $id);
+        $targetUser = User::where('warung_id', $authUser->warung_id)->findOrFail($numericId);
 
         if (in_array($authUser->role, ['ADMIN_TOKO', 'ADMIN_KANTOR']) && $targetUser->role === 'OWNER') {
             return $this->errorResponse('Admin tidak bisa mengedit Owner.', null, 403);
         }
 
-        $targetUser->update($request->validated());
+        $validatedData = $request->validated();
+        if (isset($validatedData['password']) && !empty($validatedData['password'])) {
+            $validatedData['password'] = Hash::make($validatedData['password']);
+        } else {
+            unset($validatedData['password']); // Jangan timpa jika kosong
+        }
+        $targetUser->update($validatedData);
 
         return $this->successResponse(new UserResource($targetUser), 'User berhasil diperbarui');
     }
@@ -78,11 +85,13 @@ class UserController extends Controller
     {
         $authUser = $request->user();
 
-        if ($authUser->id == $id) {
+        $numericId = (int) str_replace('USR-', '', $id);
+
+        if ($authUser->id == $numericId) {
             return $this->errorResponse('Tidak bisa menghapus diri sendiri.', null, 400);
         }
 
-        $targetUser = User::where('warung_id', $authUser->warung_id)->findOrFail($id);
+        $targetUser = User::where('warung_id', $authUser->warung_id)->findOrFail($numericId);
         $targetUser->delete();
 
         return $this->successResponse(null, 'Berhasil dihapus.');

@@ -10,11 +10,11 @@ class UserResource extends JsonResource
     public function toArray(Request $request): array
     {
         $roleMap = [
-            'OWNER' => 'Owner',
-            'ADMIN_TOKO' => 'Admin Toko',
-            'ADMIN_KANTOR' => 'Admin Kantor',
+            'OWNER' => 'OWNER',
+            'ADMIN_TOKO' => 'ADMIN_TOKO',
+            'ADMIN_KANTOR' => 'ADMIN_KANTOR',
         ];
-        $formattedRole = $roleMap[strtoupper($this->role)] ?? $this->role;
+        $formattedRole = $roleMap[strtoupper($this->role)] ?? strtoupper($this->role);
 
         return [
             'id' => 'USR-'.str_pad($this->id, 3, '0', STR_PAD_LEFT),

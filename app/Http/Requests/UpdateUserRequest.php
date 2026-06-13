@@ -17,6 +17,8 @@ class UpdateUserRequest extends FormRequest
 
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'username' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'password' => ['sometimes', 'nullable', 'string', 'min:8'],
             'phone' => ['nullable', 'string', 'max:20'],
             'role' => ['sometimes', 'required', 'in:OWNER,ADMIN_TOKO,ADMIN_KANTOR'],
             'is_active' => ['sometimes', 'boolean'],
