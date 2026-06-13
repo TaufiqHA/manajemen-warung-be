@@ -39,14 +39,38 @@ class UserSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        // 4. Buat User: ADMIN
+        // 4A. Buat User: ADMIN TOKO 1
         User::create([
-            'warung_id' => $warung->id,
-            'name' => 'Siti Admin',
-            'username' => 'admin_warung',
-            'email' => 'admin@warung.com',
+            'warung_id' => $warung->id, // <- Kunci utama agar data yang ditampilkan sama
+            'name' => 'Admin Toko Satu',
+            'username' => 'admin_satu',
+            'email' => 'admin1@warung.com',
+            'password' => $defaultPassword,
+            'phone' => '082222222221',
+            'role' => 'ADMIN_TOKO',
+            'is_active' => true,
+        ]);
+
+        // 4B. Buat User: ADMIN TOKO 2
+        User::create([
+            'warung_id' => $warung->id, // <- Tetap pakai $warung->id yang sama
+            'name' => 'Admin Toko Dua',
+            'username' => 'admin_dua',
+            'email' => 'admin2@warung.com',
             'password' => $defaultPassword,
             'phone' => '082222222222',
+            'role' => 'ADMIN_TOKO',
+            'is_active' => true,
+        ]);
+
+        // 4C. Buat User: ADMIN TOKO 3
+        User::create([
+            'warung_id' => $warung->id, // <- Tetap pakai $warung->id yang sama
+            'name' => 'Admin Toko Tiga',
+            'username' => 'admin_tiga',
+            'email' => 'admin3@warung.com',
+            'password' => $defaultPassword,
+            'phone' => '082222222223',
             'role' => 'ADMIN_TOKO',
             'is_active' => true,
         ]);
