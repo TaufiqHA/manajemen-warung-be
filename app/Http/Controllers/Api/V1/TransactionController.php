@@ -53,6 +53,9 @@ class TransactionController extends Controller
                     'waktu' => $transaction->created_at->toISOString(),
                     'dicatatOleh' => $transaction->cashier ? $transaction->cashier->name : 'System',
                     'catatan' => $item->catatan ?? '',
+                    'servedQty' => (int) $item->served_qty,
+                    'customerName' => $transaction->customer_name,
+                    'orderStatus' => $transaction->status,
                 ];
             }
         }
@@ -131,6 +134,7 @@ class TransactionController extends Controller
                     'product_name' => $product->name,
                     'unit_price' => $unitPrice,
                     'quantity' => $quantity,
+                    'served_qty' => $itemData['servedQty'] ?? 0,
                     'discount' => $discount,
                     'subtotal' => $subtotal,
                     'catatan' => $itemData['catatan'] ?? $itemData['note'] ?? '',
@@ -177,6 +181,7 @@ class TransactionController extends Controller
             $transaction = Transaction::create([
                 'warung_id' => $user->warung_id,
                 'cashier_id' => $user->id,
+                'customer_name' => $validated['customerName'] ?? null,
                 'transaction_code' => $transactionCode,
                 'total_amount' => $totalAmount,
                 'discount_amount' => $discountAmount,
@@ -185,7 +190,7 @@ class TransactionController extends Controller
                 'payment_method' => $validated['payment_method'] ?? 'CASH',
                 'paid_amount' => $paidAmount,
                 'change_amount' => $changeAmount,
-                'status' => 'COMPLETED',
+                'status' => $validated['orderStatus'] ?? 'COMPLETED',
                 'note' => $validated['note'] ?? null,
                 'created_at' => $waktu,
                 'updated_at' => $waktu,
@@ -268,6 +273,130 @@ class TransactionController extends Controller
             ]);
 
             return $this->errorResponse('Gagal membatalkan transaksi.', ['error' => [$e->getMessage()]], 500);
+        }
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'status' => 'required|string',
+        ]);
+
+        $transaction = Transaction::where('warung_id', $user->warung_id)
+            ->where(function ($query) use ($id) {
+                $query->where('id', $id)
+                    ->orWhere('transaction_code', $id);
+            })
+            ->firstOrFail();
+
+        $transaction->update([
+            'status' => $request->status,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status transaksi berhasil diperbarui',
+            'data' => [
+                'id' => $transaction->id,
+                'transaction_code' => $transaction->transaction_code,
+                'status' => $transaction->status,
+            ]
+        ], 200);
+    }
+
+    public function addItems(Request $request, $id)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'product_id' => 'required|string',
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => 'required|numeric|min:0',
+            'subtotal' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $transaction = Transaction::where('warung_id', $user->warung_id)
+                ->where(function ($query) use ($id) {
+                    $query->where('id', $id)
+                        ->orWhere('transaction_code', $id);
+                })
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // Find product
+            $product = Product::where('id', $validated['product_id'])
+                ->where('warung_id', $user->warung_id)
+                ->lockForUpdate()
+                ->first();
+
+            $productName = 'Unknown Product';
+            if ($product) {
+                if ($product->stock < $validated['quantity']) {
+                    throw new \Exception("Stok produk {$product->name} tidak mencukupi.");
+                }
+                $product->decrement('stock', $validated['quantity']);
+                $productName = $product->name;
+            }
+
+            // Check if item already exists in transaction
+            $existingItem = $transaction->items()->where('product_id', $validated['product_id'])->first();
+
+            if ($existingItem) {
+                $existingItem->update([
+                    'quantity' => $existingItem->quantity + $validated['quantity'],
+                    'subtotal' => $existingItem->subtotal + $validated['subtotal']
+                ]);
+            } else {
+                $transaction->items()->create([
+                    'product_id' => $validated['product_id'],
+                    'product_name' => $productName,
+                    'unit_price' => $validated['unit_price'],
+                    'quantity' => $validated['quantity'],
+                    'served_qty' => 0,
+                    'discount' => 0,
+                    'subtotal' => $validated['subtotal'],
+                ]);
+            }
+
+            // Recalculate Transaction Totals
+            $transaction->total_amount += $validated['subtotal'];
+            
+            // Tax Calculation if any
+            $taxAmount = 0;
+            if (isset($user->warung) && $user->warung->is_tax_enabled) {
+                $taxPercentage = $user->warung->tax_percentage ?? 0;
+                $taxAmount = ($transaction->total_amount * $taxPercentage) / 100;
+            }
+
+            $transaction->tax_amount = $taxAmount;
+            $transaction->grand_total = $transaction->total_amount - $transaction->discount_amount + $taxAmount;
+            
+            $transaction->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Item berhasil ditambahkan ke transaksi',
+                'data' => [
+                    'id' => $transaction->id,
+                    'transaction_code' => $transaction->transaction_code,
+                    'grand_total' => $transaction->grand_total
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menambah item ke transaksi.',
+                'error' => [$e->getMessage()]
+            ], 400);
         }
     }
 

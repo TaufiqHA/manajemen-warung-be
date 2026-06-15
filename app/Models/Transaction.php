@@ -14,6 +14,7 @@ class Transaction extends Model
     protected $fillable = [
         'warung_id',
         'cashier_id',
+        'customer_name',
         'transaction_code',
         'total_amount',
         'discount_amount',

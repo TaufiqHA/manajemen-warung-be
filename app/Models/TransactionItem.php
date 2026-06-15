@@ -16,6 +16,7 @@ class TransactionItem extends Model
         'product_name',
         'unit_price',
         'quantity',
+        'served_qty',
         'discount',
         'subtotal',
         'catatan',
