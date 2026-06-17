@@ -91,8 +91,13 @@ class TransactionController extends Controller
             foreach ($validated['items'] as $itemData) {
                 // Find product by product_id OR namaItem
                 $product = null;
-                if (! empty($itemData['product_id'])) {
-                    $product = Product::where('id', $itemData['product_id'])
+                $productId = $itemData['product_id'] ?? null;
+                if (!empty($productId) && is_string($productId) && str_starts_with($productId, 'PRD-')) {
+                    $productId = (int) substr($productId, 4);
+                }
+
+                if (! empty($productId)) {
+                    $product = Product::where('id', $productId)
                         ->where('warung_id', $user->warung_id)
                         ->lockForUpdate()
                         ->first();
@@ -328,8 +333,13 @@ class TransactionController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            $productId = $validated['product_id'];
+            if (is_string($productId) && str_starts_with($productId, 'PRD-')) {
+                $productId = (int) substr($productId, 4);
+            }
+
             // Find product
-            $product = Product::where('id', $validated['product_id'])
+            $product = Product::where('id', $productId)
                 ->where('warung_id', $user->warung_id)
                 ->lockForUpdate()
                 ->first();
@@ -344,7 +354,7 @@ class TransactionController extends Controller
             }
 
             // Check if item already exists in transaction
-            $existingItem = $transaction->items()->where('product_id', $validated['product_id'])->first();
+            $existingItem = $transaction->items()->where('product_id', $productId)->first();
 
             if ($existingItem) {
                 $existingItem->update([
@@ -353,7 +363,7 @@ class TransactionController extends Controller
                 ]);
             } else {
                 $transaction->items()->create([
-                    'product_id' => $validated['product_id'],
+                    'product_id' => $productId,
                     'product_name' => $productName,
                     'unit_price' => $validated['unit_price'],
                     'quantity' => $validated['quantity'],
@@ -395,6 +405,79 @@ class TransactionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menambah item ke transaksi.',
+                'error' => [$e->getMessage()]
+            ], 400);
+        }
+    }
+
+    public function removeItem(Request $request, $id, $itemId)
+    {
+        $user = $request->user();
+
+        try {
+            DB::beginTransaction();
+
+            $transaction = Transaction::where('warung_id', $user->warung_id)
+                ->where(function ($query) use ($id) {
+                    $query->where('id', $id)
+                        ->orWhere('transaction_code', $id);
+                })
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (is_string($itemId) && str_starts_with($itemId, 'PRD-')) {
+                $itemId = (int) substr($itemId, 4);
+            }
+
+            $item = $transaction->items()->where('product_id', $itemId)->firstOrFail();
+            
+            // Add stock back
+            $product = Product::where('id', $itemId)
+                ->where('warung_id', $user->warung_id)
+                ->first();
+            if ($product) {
+                $product->increment('stock', $item->quantity);
+            }
+
+            // Recalculate Transaction Totals
+            $transaction->total_amount -= $item->subtotal;
+            
+            // Tax Calculation if any
+            $taxAmount = 0;
+            if (isset($user->warung) && $user->warung->is_tax_enabled) {
+                $taxPercentage = $user->warung->tax_percentage ?? 0;
+                $taxAmount = ($transaction->total_amount * $taxPercentage) / 100;
+            }
+
+            $transaction->tax_amount = $taxAmount;
+            $transaction->grand_total = $transaction->total_amount - $transaction->discount_amount + $taxAmount;
+            
+            // If grand_total is 0 or less, we might cancel the transaction, but let the frontend decide.
+            if ($transaction->total_amount <= 0) {
+                $transaction->status = 'CANCELLED';
+            }
+
+            $transaction->save();
+            $item->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Item berhasil dihapus dari transaksi',
+                'data' => [
+                    'id' => $transaction->id,
+                    'transaction_code' => $transaction->transaction_code,
+                    'grand_total' => $transaction->grand_total,
+                    'status' => $transaction->status
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus item dari transaksi.',
                 'error' => [$e->getMessage()]
             ], 400);
         }

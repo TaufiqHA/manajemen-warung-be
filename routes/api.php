@@ -94,6 +94,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/transactions/{id}', [TransactionController::class, 'show']);
             Route::patch('/transactions/{id}/status', [TransactionController::class, 'updateStatus']);
             Route::post('/transactions/{id}/items', [TransactionController::class, 'addItems']);
+            Route::delete('/transactions/{id}/items/{itemId}', [TransactionController::class, 'removeItem']);
         });
 
         // Transaction Cancellation (OWNER only)
