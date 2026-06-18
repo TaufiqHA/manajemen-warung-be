@@ -287,6 +287,7 @@ class TransactionController extends Controller
 
         $request->validate([
             'status' => 'required|string',
+            'payment_method' => 'nullable|string|in:CASH,TRANSFER,QRIS',
         ]);
 
         $transaction = Transaction::where('warung_id', $user->warung_id)
@@ -296,9 +297,12 @@ class TransactionController extends Controller
             })
             ->firstOrFail();
 
-        $transaction->update([
-            'status' => $request->status,
-        ]);
+        $updateData = ['status' => $request->status];
+        if ($request->has('payment_method')) {
+            $updateData['payment_method'] = $request->payment_method;
+        }
+
+        $transaction->update($updateData);
 
         return response()->json([
             'success' => true,
