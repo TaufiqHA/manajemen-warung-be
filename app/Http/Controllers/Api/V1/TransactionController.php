@@ -414,6 +414,99 @@ class TransactionController extends Controller
         }
     }
 
+    public function updateItem(Request $request, $id, $itemId)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:1',
+            'subtotal' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $transaction = Transaction::where('warung_id', $user->warung_id)
+                ->where(function ($query) use ($id) {
+                    $query->where('id', $id)
+                        ->orWhere('transaction_code', $id);
+                })
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (is_string($itemId) && str_starts_with($itemId, 'PRD-')) {
+                $itemId = (int) substr($itemId, 4);
+            }
+
+            $item = $transaction->items()->where('product_id', $itemId)->firstOrFail();
+            
+            // Calculate qty difference for stock adjustment
+            $qtyDiff = $validated['quantity'] - $item->quantity;
+            
+            if ($qtyDiff > 0) {
+                // Need more stock
+                $product = Product::where('id', $itemId)
+                    ->where('warung_id', $user->warung_id)
+                    ->lockForUpdate()
+                    ->first();
+                if ($product) {
+                    if ($product->stock < $qtyDiff) {
+                        throw new \Exception("Stok produk {$product->name} tidak mencukupi.");
+                    }
+                    $product->decrement('stock', $qtyDiff);
+                }
+            } elseif ($qtyDiff < 0) {
+                // Return stock
+                $product = Product::where('id', $itemId)
+                    ->where('warung_id', $user->warung_id)
+                    ->first();
+                if ($product) {
+                    $product->increment('stock', abs($qtyDiff));
+                }
+            }
+
+            // Recalculate Transaction Totals
+            $transaction->total_amount = $transaction->total_amount - $item->subtotal + $validated['subtotal'];
+            
+            // Tax Calculation if any
+            $taxAmount = 0;
+            if (isset($user->warung) && $user->warung->is_tax_enabled) {
+                $taxPercentage = $user->warung->tax_percentage ?? 0;
+                $taxAmount = ($transaction->total_amount * $taxPercentage) / 100;
+            }
+
+            $transaction->tax_amount = $taxAmount;
+            $transaction->grand_total = $transaction->total_amount - $transaction->discount_amount + $taxAmount;
+            
+            $item->update([
+                'quantity' => $validated['quantity'],
+                'subtotal' => $validated['subtotal']
+            ]);
+
+            $transaction->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Item berhasil diupdate',
+                'data' => [
+                    'id' => $transaction->id,
+                    'transaction_code' => $transaction->transaction_code,
+                    'grand_total' => $transaction->grand_total
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengupdate item transaksi.',
+                'error' => [$e->getMessage()]
+            ], 400);
+        }
+    }
+
     public function removeItem(Request $request, $id, $itemId)
     {
         $user = $request->user();
