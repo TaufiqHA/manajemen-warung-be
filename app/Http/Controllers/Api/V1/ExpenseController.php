@@ -76,11 +76,13 @@ class ExpenseController extends Controller
             'SEWA' => 'SEWA',
             'PERALATAN' => 'PERALATAN',
             'LAINNYA' => 'LAINNYA',
+            'BIAYA DLL' => 'LAINNYA',
+            'BIAYA OPERASIONAL' => 'BIAYA_OPERASIONAL',
         ];
         $category = strtoupper($kategoriInput);
         $category = $categoryMap[$category] ?? $kategoriInput;
 
-        $note = $request->input('catatan') ?? $request->input('note');
+        $note = $request->input('catatan') ?? $request->input('note') ?? $request->input('keterangan');
         $date = $request->input('tanggal') ?? $request->input('date') ?? now()->format('Y-m-d');
         try {
             $parsedDate = now()->parse($date)->format('Y-m-d');
@@ -132,12 +134,14 @@ class ExpenseController extends Controller
                 'SEWA' => 'SEWA',
                 'PERALATAN' => 'PERALATAN',
                 'LAINNYA' => 'LAINNYA',
+                'BIAYA DLL' => 'LAINNYA',
+                'BIAYA OPERASIONAL' => 'BIAYA_OPERASIONAL',
             ];
             $category = strtoupper($kategoriInput);
             $dataToUpdate['category'] = $categoryMap[$category] ?? $kategoriInput;
         }
-        if ($request->has('catatan') || $request->has('note')) {
-            $dataToUpdate['note'] = $request->input('catatan') ?? $request->input('note');
+        if ($request->has('catatan') || $request->has('note') || $request->has('keterangan')) {
+            $dataToUpdate['note'] = $request->input('catatan') ?? $request->input('note') ?? $request->input('keterangan');
         }
         if ($request->has('title')) {
             $dataToUpdate['title'] = $request->input('title');

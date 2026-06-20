@@ -19,6 +19,7 @@ class StoreExpenseRequest extends ApiRequest
             'kategori' => ['nullable', 'string'],
             'note' => ['nullable', 'string'],
             'catatan' => ['nullable', 'string'],
+            'keterangan' => ['nullable', 'string'],
             'date' => ['nullable', 'string'],
             'tanggal' => ['nullable', 'string'],
         ];

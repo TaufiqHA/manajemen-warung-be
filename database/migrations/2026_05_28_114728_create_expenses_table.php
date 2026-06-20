@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('title');
             $table->unsignedBigInteger('amount');
             $table->enum('category', [
-                'BAHAN_BAKU', 'GAJI', 'LISTRIK', 'AIR', 'SEWA', 'PERALATAN', 'LAINNYA',
+                'BAHAN_BAKU', 'GAJI', 'LISTRIK', 'AIR', 'SEWA', 'PERALATAN', 'LAINNYA', 'BIAYA_OPERASIONAL',
             ]);
             $table->text('note')->nullable();
             $table->date('date');

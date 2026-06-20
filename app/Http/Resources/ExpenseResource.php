@@ -21,6 +21,14 @@ class ExpenseResource extends JsonResource
             'OPERATIONAL' => 'Operasional',
             'PURCHASE' => 'Bahan Baku',
             'OTHER' => 'Lainnya',
+            'BAHAN_BAKU' => 'Bahan Baku',
+            'BIAYA_OPERASIONAL' => 'Biaya Operasional',
+            'LAINNYA' => 'Biaya dll',
+            'GAJI' => 'Gaji',
+            'LISTRIK' => 'Listrik',
+            'AIR' => 'Air',
+            'SEWA' => 'Sewa',
+            'PERALATAN' => 'Peralatan',
         ];
         $formattedCategory = $categoryMap[strtoupper($this->category)] ?? $this->category;
 
@@ -28,8 +36,9 @@ class ExpenseResource extends JsonResource
             'id' => 'EXP-'.str_pad($this->id, 3, '0', STR_PAD_LEFT),
             'jumlah' => (float) $this->amount,
             'kategori' => $formattedCategory,
-            'catatan' => $this->note ?? '',
+            'keterangan' => $this->note ?? '',
             'tanggal' => $formattedDate,
+            'pembuat' => $this->creator ? $this->creator->name : 'Admin Kantor',
 
             // Legacy fields for backward compatibility with existing tests
             'title' => $this->title,
