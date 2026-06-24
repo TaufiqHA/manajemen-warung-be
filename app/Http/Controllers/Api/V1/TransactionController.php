@@ -53,6 +53,7 @@ class TransactionController extends Controller
                     'waktu' => $transaction->created_at->toISOString(),
                     'dicatatOleh' => $transaction->cashier ? $transaction->cashier->name : 'System',
                     'catatan' => $item->catatan ?? '',
+                    'payment_method' => $transaction->payment_method,
                     'servedQty' => (int) $item->served_qty,
                     'customerName' => $transaction->customer_name,
                     'orderStatus' => $transaction->status,
