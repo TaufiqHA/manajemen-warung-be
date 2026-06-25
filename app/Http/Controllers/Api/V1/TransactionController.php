@@ -93,7 +93,7 @@ class TransactionController extends Controller
                 // Find product by product_id OR namaItem
                 $product = null;
                 $productId = $itemData['product_id'] ?? null;
-                if (!empty($productId) && is_string($productId) && str_starts_with($productId, 'PRD-')) {
+                if (! empty($productId) && is_string($productId) && str_starts_with($productId, 'PRD-')) {
                     $productId = (int) substr($productId, 4);
                 }
 
@@ -312,7 +312,7 @@ class TransactionController extends Controller
                 'id' => $transaction->id,
                 'transaction_code' => $transaction->transaction_code,
                 'status' => $transaction->status,
-            ]
+            ],
         ], 200);
     }
 
@@ -364,7 +364,7 @@ class TransactionController extends Controller
             if ($existingItem) {
                 $existingItem->update([
                     'quantity' => $existingItem->quantity + $validated['quantity'],
-                    'subtotal' => $existingItem->subtotal + $validated['subtotal']
+                    'subtotal' => $existingItem->subtotal + $validated['subtotal'],
                 ]);
             } else {
                 $transaction->items()->create([
@@ -380,7 +380,7 @@ class TransactionController extends Controller
 
             // Recalculate Transaction Totals
             $transaction->total_amount += $validated['subtotal'];
-            
+
             // Tax Calculation if any
             $taxAmount = 0;
             if (isset($user->warung) && $user->warung->is_tax_enabled) {
@@ -390,7 +390,7 @@ class TransactionController extends Controller
 
             $transaction->tax_amount = $taxAmount;
             $transaction->grand_total = $transaction->total_amount - $transaction->discount_amount + $taxAmount;
-            
+
             $transaction->save();
 
             DB::commit();
@@ -401,16 +401,17 @@ class TransactionController extends Controller
                 'data' => [
                     'id' => $transaction->id,
                     'transaction_code' => $transaction->transaction_code,
-                    'grand_total' => $transaction->grand_total
-                ]
+                    'grand_total' => $transaction->grand_total,
+                ],
             ], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menambah item ke transaksi.',
-                'error' => [$e->getMessage()]
+                'error' => [$e->getMessage()],
             ], 400);
         }
     }
@@ -440,10 +441,10 @@ class TransactionController extends Controller
             }
 
             $item = $transaction->items()->where('product_id', $itemId)->firstOrFail();
-            
+
             // Calculate qty difference for stock adjustment
             $qtyDiff = $validated['quantity'] - $item->quantity;
-            
+
             if ($qtyDiff > 0) {
                 // Need more stock
                 $product = Product::where('id', $itemId)
@@ -468,7 +469,7 @@ class TransactionController extends Controller
 
             // Recalculate Transaction Totals
             $transaction->total_amount = $transaction->total_amount - $item->subtotal + $validated['subtotal'];
-            
+
             // Tax Calculation if any
             $taxAmount = 0;
             if (isset($user->warung) && $user->warung->is_tax_enabled) {
@@ -478,10 +479,10 @@ class TransactionController extends Controller
 
             $transaction->tax_amount = $taxAmount;
             $transaction->grand_total = $transaction->total_amount - $transaction->discount_amount + $taxAmount;
-            
+
             $item->update([
                 'quantity' => $validated['quantity'],
-                'subtotal' => $validated['subtotal']
+                'subtotal' => $validated['subtotal'],
             ]);
 
             $transaction->save();
@@ -494,16 +495,60 @@ class TransactionController extends Controller
                 'data' => [
                     'id' => $transaction->id,
                     'transaction_code' => $transaction->transaction_code,
-                    'grand_total' => $transaction->grand_total
-                ]
+                    'grand_total' => $transaction->grand_total,
+                ],
             ], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengupdate item transaksi.',
-                'error' => [$e->getMessage()]
+                'error' => [$e->getMessage()],
+            ], 400);
+        }
+    }
+
+    public function updateServedQty(Request $request, $id, $itemId)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'served_qty' => 'required|integer|min:0',
+        ]);
+
+        try {
+            $transaction = Transaction::where('warung_id', $user->warung_id)
+                ->where(function ($query) use ($id) {
+                    $query->where('id', $id)
+                        ->orWhere('transaction_code', $id);
+                })
+                ->firstOrFail();
+
+            if (is_string($itemId) && str_starts_with($itemId, 'PRD-')) {
+                $itemId = (int) substr($itemId, 4);
+            }
+
+            $item = $transaction->items()->where('product_id', $itemId)->firstOrFail();
+
+            $item->update([
+                'served_qty' => $validated['served_qty'],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Served qty berhasil diupdate',
+                'data' => [
+                    'servedQty' => (int) $item->served_qty,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengupdate served qty.',
+                'error' => [$e->getMessage()],
             ], 400);
         }
     }
@@ -528,7 +573,7 @@ class TransactionController extends Controller
             }
 
             $item = $transaction->items()->where('product_id', $itemId)->firstOrFail();
-            
+
             // Add stock back
             $product = Product::where('id', $itemId)
                 ->where('warung_id', $user->warung_id)
@@ -539,7 +584,7 @@ class TransactionController extends Controller
 
             // Recalculate Transaction Totals
             $transaction->total_amount -= $item->subtotal;
-            
+
             // Tax Calculation if any
             $taxAmount = 0;
             if (isset($user->warung) && $user->warung->is_tax_enabled) {
@@ -549,7 +594,7 @@ class TransactionController extends Controller
 
             $transaction->tax_amount = $taxAmount;
             $transaction->grand_total = $transaction->total_amount - $transaction->discount_amount + $taxAmount;
-            
+
             // If grand_total is 0 or less, we might cancel the transaction, but let the frontend decide.
             if ($transaction->total_amount <= 0) {
                 $transaction->status = 'CANCELLED';
@@ -567,16 +612,17 @@ class TransactionController extends Controller
                     'id' => $transaction->id,
                     'transaction_code' => $transaction->transaction_code,
                     'grand_total' => $transaction->grand_total,
-                    'status' => $transaction->status
-                ]
+                    'status' => $transaction->status,
+                ],
             ], 200);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menghapus item dari transaksi.',
-                'error' => [$e->getMessage()]
+                'error' => [$e->getMessage()],
             ], 400);
         }
     }

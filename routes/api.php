@@ -21,7 +21,7 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/test', function () {
         return response()->json([
-            'message' => 'Success'
+            'message' => 'Success',
         ]);
     });
 
@@ -101,6 +101,7 @@ Route::prefix('v1')->group(function () {
             Route::patch('/transactions/{id}/status', [TransactionController::class, 'updateStatus']);
             Route::post('/transactions/{id}/items', [TransactionController::class, 'addItems']);
             Route::patch('/transactions/{id}/items/{itemId}', [TransactionController::class, 'updateItem']);
+            Route::patch('/transactions/{id}/items/{itemId}/served', [TransactionController::class, 'updateServedQty']);
             Route::delete('/transactions/{id}/items/{itemId}', [TransactionController::class, 'removeItem']);
         });
 

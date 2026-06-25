@@ -245,4 +245,43 @@ class TransactionTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_user_can_update_served_qty()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken;
+
+        $transaction = Transaction::create([
+            'warung_id' => $this->warung->id,
+            'cashier_id' => $this->user->id,
+            'transaction_code' => 'TRX-SERVED-1',
+            'total_amount' => 10000,
+            'grand_total' => 10000,
+            'payment_method' => 'CASH',
+            'paid_amount' => 10000,
+            'change_amount' => 0,
+            'status' => 'PENDING',
+        ]);
+
+        $item = $transaction->items()->create([
+            'product_id' => $this->product->id,
+            'product_name' => $this->product->name,
+            'unit_price' => 5000,
+            'quantity' => 2,
+            'served_qty' => 0,
+            'subtotal' => 10000,
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->patchJson('/api/v1/transactions/'.$transaction->id.'/items/'.$this->product->id.'/served', [
+                'served_qty' => 1,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.servedQty', 1);
+
+        $this->assertDatabaseHas('transaction_items', [
+            'id' => $item->id,
+            'served_qty' => 1,
+        ]);
+    }
 }
