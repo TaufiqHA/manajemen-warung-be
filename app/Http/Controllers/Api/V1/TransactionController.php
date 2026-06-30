@@ -289,6 +289,7 @@ class TransactionController extends Controller
         $request->validate([
             'status' => 'required|string',
             'payment_method' => 'nullable|string|in:CASH,TRANSFER,QRIS',
+            'discount_amount' => 'nullable|integer|min:0',
         ]);
 
         $transaction = Transaction::where('warung_id', $user->warung_id)
@@ -301,6 +302,19 @@ class TransactionController extends Controller
         $updateData = ['status' => $request->status];
         if ($request->has('payment_method')) {
             $updateData['payment_method'] = $request->payment_method;
+        }
+
+        if ($request->has('discount_amount')) {
+            $discountAmount = (int) $request->discount_amount;
+            $updateData['discount_amount'] = $discountAmount;
+
+            $totalAmount = (int) $transaction->total_amount;
+            $taxAmount = (int) $transaction->tax_amount;
+            $grandTotal = max(0, $totalAmount - $discountAmount + $taxAmount);
+
+            $updateData['grand_total'] = $grandTotal;
+            $updateData['paid_amount'] = $grandTotal;
+            $updateData['change_amount'] = 0;
         }
 
         $transaction->update($updateData);
