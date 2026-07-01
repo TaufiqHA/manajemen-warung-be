@@ -57,6 +57,9 @@ class TransactionController extends Controller
                     'servedQty' => (int) $item->served_qty,
                     'customerName' => $transaction->customer_name,
                     'orderStatus' => $transaction->status,
+                    'grandTotal' => $isCancelled ? 0.0 : (float) $transaction->grand_total,
+                    'discountAmount' => (float) $transaction->discount_amount,
+                    'itemDiscount' => (float) $item->discount,
                 ];
             }
         }
