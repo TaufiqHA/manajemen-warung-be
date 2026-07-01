@@ -84,11 +84,7 @@ class ExpenseController extends Controller
 
         $note = $request->input('catatan') ?? $request->input('note') ?? $request->input('keterangan');
         $date = $request->input('tanggal') ?? $request->input('date') ?? now()->format('Y-m-d');
-        try {
-            $parsedDate = now()->parse($date)->format('Y-m-d');
-        } catch (\Exception $e) {
-            $parsedDate = now()->format('Y-m-d');
-        }
+        $parsedDate = $this->parseIndonesianDate($date);
 
         $expense = Expense::create([
             'warung_id' => $user->warung_id,
@@ -148,10 +144,9 @@ class ExpenseController extends Controller
         }
         if ($request->has('tanggal') || $request->has('date')) {
             $date = $request->input('tanggal') ?? $request->input('date');
-            try {
-                $dataToUpdate['date'] = now()->parse($date)->format('Y-m-d');
-            } catch (\Exception $e) {
-                // ignore
+            $parsedDate = $this->parseIndonesianDate($date, false);
+            if ($parsedDate !== false) {
+                $dataToUpdate['date'] = $parsedDate;
             }
         }
 
@@ -179,5 +174,35 @@ class ExpenseController extends Controller
             'success' => true,
             'message' => 'Pengeluaran berhasil dihapus',
         ]);
+    }
+
+    /**
+     * Parse date string that might contain Indonesian day or month names.
+     *
+     * @param string|null $date
+     * @param mixed $fallback
+     * @return string|mixed
+     */
+    private function parseIndonesianDate($date, $fallback = null)
+    {
+        if (empty($date)) {
+            return $fallback ?? now()->format('Y-m-d');
+        }
+
+        // Translasi dari format Indonesia ke Inggris agar Carbon bisa parsing
+        $idMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        $enMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+        $idDays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+        $enDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+        $dateTransformed = str_ireplace($idMonths, $enMonths, $date);
+        $dateTransformed = str_ireplace($idDays, $enDays, $dateTransformed);
+
+        try {
+            return now()->parse($dateTransformed)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return $fallback ?? now()->format('Y-m-d');
+        }
     }
 }

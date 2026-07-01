@@ -119,4 +119,50 @@ class ExpenseTest extends TestCase
         $response->assertStatus(200);
         $this->assertDatabaseMissing('expenses', ['id' => $expense->id]);
     }
+
+    public function test_create_expense_with_indonesian_date()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/v1/expenses', [
+                'title' => 'Sewa Kios',
+                'amount' => 1500000,
+                'category' => 'SEWA',
+                'tanggal' => 'Rabu, 15 Juli 2026',
+                'note' => 'Pembayaran Sewa',
+            ]);
+
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('expenses', [
+            'title' => 'Sewa Kios',
+            'amount' => 1500000,
+            'date' => '2026-07-15 00:00:00',
+        ]);
+    }
+
+    public function test_update_expense_with_indonesian_date()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken;
+
+        $expense = Expense::create([
+            'warung_id' => $this->warung->id,
+            'created_by' => $this->user->id,
+            'title' => 'Air',
+            'amount' => 50000,
+            'category' => 'AIR',
+            'date' => '2026-06-01',
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->putJson('/api/v1/expenses/'.$expense->id, [
+                'tanggal' => 'Kamis, 16 Juli 2026',
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('expenses', [
+            'id' => $expense->id,
+            'date' => '2026-07-16 00:00:00',
+        ]);
+    }
 }
