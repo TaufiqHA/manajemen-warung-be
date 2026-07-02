@@ -98,7 +98,7 @@ class ProductController extends Controller
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
-            'stock' => $request->stock,
+            'stock' => $request->stock ?? 0,
             'unit' => $request->unit ?? 'pcs',
             'image_url' => $imageUrl,
             'is_active' => $request->is_active ?? true,
@@ -121,7 +121,7 @@ class ProductController extends Controller
 
         $product = Product::where('warung_id', $user->warung_id)->findOrFail($id);
 
-        $dataToUpdate = $request->only('name', 'description', 'price', 'stock', 'unit', 'is_active');
+        $dataToUpdate = $request->only('name', 'description', 'price', 'unit', 'is_active');
 
         if ($request->has('category')) {
             $category = Category::firstOrCreate([

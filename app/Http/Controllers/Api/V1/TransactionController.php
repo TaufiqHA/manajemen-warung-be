@@ -129,10 +129,6 @@ class TransactionController extends Controller
 
                 $quantity = $itemData['jumlah'] ?? $itemData['quantity'] ?? 1;
 
-                if ($product->stock < $quantity) {
-                    throw new \Exception("Stok produk {$product->name} tidak mencukupi.");
-                }
-
                 $unitPrice = $itemData['harga'] ?? $itemData['unit_price'] ?? $product->price;
                 $discount = $itemData['discount'] ?? 0;
                 $subtotal = ($unitPrice * $quantity) - $discount;
@@ -151,8 +147,6 @@ class TransactionController extends Controller
                     'updated_at' => now(),
                 ];
 
-                // Kurangi stok produk
-                $product->decrement('stock', $quantity);
             }
 
             $discountAmount = $validated['discount_amount'] ?? 0;
@@ -250,10 +244,7 @@ class TransactionController extends Controller
         try {
             DB::beginTransaction();
 
-            // Kembalikan stok
-            foreach ($transaction->items as $item) {
-                Product::where('id', $item->product_id)->increment('stock', $item->quantity);
-            }
+
 
             $transaction->update([
                 'status' => 'CANCELLED',
@@ -368,10 +359,6 @@ class TransactionController extends Controller
 
             $productName = 'Unknown Product';
             if ($product) {
-                if ($product->stock < $validated['quantity']) {
-                    throw new \Exception("Stok produk {$product->name} tidak mencukupi.");
-                }
-                $product->decrement('stock', $validated['quantity']);
                 $productName = $product->name;
             }
 
@@ -459,30 +446,7 @@ class TransactionController extends Controller
 
             $item = $transaction->items()->where('product_id', $itemId)->firstOrFail();
 
-            // Calculate qty difference for stock adjustment
-            $qtyDiff = $validated['quantity'] - $item->quantity;
 
-            if ($qtyDiff > 0) {
-                // Need more stock
-                $product = Product::where('id', $itemId)
-                    ->where('warung_id', $user->warung_id)
-                    ->lockForUpdate()
-                    ->first();
-                if ($product) {
-                    if ($product->stock < $qtyDiff) {
-                        throw new \Exception("Stok produk {$product->name} tidak mencukupi.");
-                    }
-                    $product->decrement('stock', $qtyDiff);
-                }
-            } elseif ($qtyDiff < 0) {
-                // Return stock
-                $product = Product::where('id', $itemId)
-                    ->where('warung_id', $user->warung_id)
-                    ->first();
-                if ($product) {
-                    $product->increment('stock', abs($qtyDiff));
-                }
-            }
 
             // Recalculate Transaction Totals
             $transaction->total_amount = $transaction->total_amount - $item->subtotal + $validated['subtotal'];
@@ -591,13 +555,7 @@ class TransactionController extends Controller
 
             $item = $transaction->items()->where('product_id', $itemId)->firstOrFail();
 
-            // Add stock back
-            $product = Product::where('id', $itemId)
-                ->where('warung_id', $user->warung_id)
-                ->first();
-            if ($product) {
-                $product->increment('stock', $item->quantity);
-            }
+
 
             // Recalculate Transaction Totals
             $transaction->total_amount -= $item->subtotal;
