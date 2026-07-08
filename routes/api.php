@@ -93,11 +93,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/products', [ProductController::class, 'index']);
         Route::get('/products/{id}', [ProductController::class, 'show']);
 
-        // Transactions
+        // Transactions - Read Access (OWNER, ADMIN_TOKO, ADMIN_KANTOR)
         Route::middleware('role:OWNER,ADMIN_TOKO,ADMIN_KANTOR')->group(function () {
             Route::get('/transactions', [TransactionController::class, 'index']);
-            Route::post('/transactions', [TransactionController::class, 'store']);
             Route::get('/transactions/{id}', [TransactionController::class, 'show']);
+        });
+
+        // Transactions - Write/Update Access (ADMIN_TOKO only)
+        Route::middleware('role:ADMIN_TOKO')->group(function () {
+            Route::post('/transactions', [TransactionController::class, 'store']);
             Route::patch('/transactions/{id}/status', [TransactionController::class, 'updateStatus']);
             Route::post('/transactions/{id}/items', [TransactionController::class, 'addItems']);
             Route::patch('/transactions/{id}/items/{itemId}', [TransactionController::class, 'updateItem']);
@@ -105,8 +109,8 @@ Route::prefix('v1')->group(function () {
             Route::delete('/transactions/{id}/items/{itemId}', [TransactionController::class, 'removeItem']);
         });
 
-        // Transaction Cancellation (OWNER only)
-        Route::middleware('role:ADMIN_TOKO')->group(function () {
+        // Transaction Cancellation & Deletion (OWNER only)
+        Route::middleware('role:OWNER')->group(function () {
             Route::patch('/transactions/{id}/cancel', [TransactionController::class, 'cancel']);
             Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
         });
