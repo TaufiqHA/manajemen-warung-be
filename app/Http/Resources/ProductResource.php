@@ -11,6 +11,14 @@ class ProductResource extends JsonResource
     {
         $categoryName = $this->category ? $this->category->name : 'Lainnya';
 
+        $hasSales = $this->has_sales ?? null;
+        if ($hasSales === null && $this->relationLoaded('transactionItems')) {
+            $hasSales = $this->transactionItems->isNotEmpty();
+        }
+        if ($hasSales === null) {
+            $hasSales = $this->transactionItems()->exists();
+        }
+
         return [
             'id' => 'PRD-'.str_pad($this->id, 3, '0', STR_PAD_LEFT),
             'name' => $this->name,
@@ -23,6 +31,8 @@ class ProductResource extends JsonResource
             'category_id' => $this->category_id,
             'category_name' => $categoryName,
             'is_active' => $this->is_active,
+            // True bila produk sudah pernah masuk ke transaksi (tidak boleh dihapus).
+            'has_sales' => (bool) $hasSales,
         ];
     }
 }

@@ -25,6 +25,7 @@ class ProductController extends Controller
         $user = $request->user();
 
         $query = Product::with('category')
+            ->withExists('transactionItems as has_sales')
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->where('products.warung_id', $user->warung_id)
             ->select('products.*');
@@ -157,6 +158,14 @@ class ProductController extends Controller
 
         $product = Product::where('warung_id', $user->warung_id)->findOrFail($id);
 
+        if ($product->transactionItems()->exists()) {
+            return $this->errorResponse(
+                'Menu yang sudah pernah terjual tidak dapat dihapus. Ubah data menu bila perlu.',
+                null,
+                409
+            );
+        }
+
         if ($product->image_url) {
             Storage::disk('public')->delete(str_replace('storage/', '', $product->image_url));
         }
@@ -201,6 +210,30 @@ class ProductController extends Controller
         $product->update(['stock' => $request->stock]);
 
         return $this->successResponse(new ProductResource($product), 'Stok produk berhasil diperbarui');
+    }
+
+    /**
+     * Aktifkan / nonaktifkan produk tanpa menghapusnya.
+     * Dipakai untuk menu yang sudah pernah terjual (tidak boleh dihapus).
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $user = $request->user();
+
+        if (is_string($id) && str_starts_with($id, 'PRD-')) {
+            $id = (int) substr($id, 4);
+        }
+
+        $validated = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $product = Product::where('warung_id', $user->warung_id)->findOrFail($id);
+        $product->update(['is_active' => $validated['is_active']]);
+
+        $message = $validated['is_active'] ? 'Menu berhasil diaktifkan' : 'Menu berhasil dinonaktifkan';
+
+        return $this->successResponse(new ProductResource($product), $message);
     }
 
     public function updateLayout(Request $request)

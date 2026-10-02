@@ -4,6 +4,8 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Transaction;
+use App\Models\TransactionItem;
 use App\Models\User;
 use App\Models\Warung;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -169,6 +171,145 @@ class ProductTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertDatabaseMissing('products', ['id' => $product->id]);
+    }
+
+    public function test_product_with_sales_cannot_be_deleted()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken;
+
+        $product = Product::create([
+            'warung_id' => $this->warung->id,
+            'name' => 'Sudah Terjual',
+            'price' => 10000,
+            'stock' => 10,
+        ]);
+
+        $this->createSaleFor($product);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/v1/products/'.$product->id);
+
+        $response->assertStatus(409);
+        $response->assertJson(['success' => false]);
+        $this->assertDatabaseHas('products', ['id' => $product->id]);
+        $this->assertDatabaseHas('transaction_items', ['product_id' => $product->id]);
+    }
+
+    public function test_product_with_sales_can_be_deactivated_and_reactivated()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken;
+
+        $product = Product::create([
+            'warung_id' => $this->warung->id,
+            'name' => 'Menu Nonaktif',
+            'price' => 10000,
+            'stock' => 10,
+            'is_active' => true,
+        ]);
+        $this->createSaleFor($product);
+
+        // Nonaktifkan
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->patchJson('/api/v1/products/'.$product->id.'/status', [
+                'is_active' => false,
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'is_active' => false]);
+
+        // Aktifkan kembali
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->patchJson('/api/v1/products/'.$product->id.'/status', [
+                'is_active' => true,
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'is_active' => true]);
+    }
+
+    public function test_editing_product_price_keeps_existing_transaction_price()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken;
+
+        $product = Product::create([
+            'warung_id' => $this->warung->id,
+            'name' => 'Menu Harga Lama',
+            'price' => 15000,
+            'stock' => 10,
+        ]);
+
+        $item = $this->createSaleFor($product, 15000, 2);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->putJson('/api/v1/products/'.$product->id, [
+                'price' => 20000,
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('products', ['id' => $product->id, 'price' => 20000]);
+        // Snapshot harga transaksi lama tidak boleh ikut berubah.
+        $this->assertDatabaseHas('transaction_items', [
+            'id' => $item->id,
+            'unit_price' => 15000,
+            'subtotal' => 30000,
+        ]);
+    }
+
+    public function test_product_list_exposes_has_sales_flag()
+    {
+        $token = $this->user->createToken('test_token')->plainTextToken;
+
+        $sold = Product::create([
+            'warung_id' => $this->warung->id,
+            'name' => 'Sudah Laku',
+            'price' => 10000,
+            'stock' => 10,
+        ]);
+        $this->createSaleFor($sold);
+
+        Product::create([
+            'warung_id' => $this->warung->id,
+            'name' => 'Belum Laku',
+            'price' => 5000,
+            'stock' => 10,
+        ]);
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/products');
+
+        $response->assertStatus(200);
+        $response->assertJsonFragment(['name' => 'Sudah Laku', 'has_sales' => true]);
+        $response->assertJsonFragment(['name' => 'Belum Laku', 'has_sales' => false]);
+    }
+
+    private function createSaleFor(Product $product, ?int $unitPrice = null, int $quantity = 1): TransactionItem
+    {
+        $unitPrice ??= (int) $product->price;
+        $subtotal = $unitPrice * $quantity;
+
+        $transaction = Transaction::create([
+            'warung_id' => $this->warung->id,
+            'cashier_id' => $this->user->id,
+            'transaction_code' => 'TRX-TEST-'.str_pad((string) (Transaction::count() + 1), 4, '0', STR_PAD_LEFT),
+            'total_amount' => $subtotal,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'grand_total' => $subtotal,
+            'payment_method' => 'CASH',
+            'paid_amount' => $subtotal,
+            'change_amount' => 0,
+            'status' => 'COMPLETED',
+        ]);
+
+        return $transaction->items()->create([
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'unit_price' => $unitPrice,
+            'quantity' => $quantity,
+            'served_qty' => 0,
+            'discount' => 0,
+            'subtotal' => $subtotal,
+        ]);
     }
 
     public function test_user_can_export_products_to_csv()

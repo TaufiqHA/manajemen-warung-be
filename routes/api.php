@@ -89,6 +89,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/products/{id}', [ProductController::class, 'destroy']);
             Route::post('/products/{id}/image', [ProductController::class, 'uploadImage']);
             Route::patch('/products/{id}/stock', [ProductController::class, 'updateStock']);
+            Route::patch('/products/{id}/status', [ProductController::class, 'updateStatus']);
         });
         Route::get('/products', [ProductController::class, 'index']);
         Route::get('/products/{id}', [ProductController::class, 'show']);
