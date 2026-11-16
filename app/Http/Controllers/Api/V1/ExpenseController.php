@@ -19,17 +19,32 @@ class ExpenseController extends Controller
         $user = $request->user();
 
         $filter = $request->input('filter', 'Semua');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
         $query = Expense::where('warung_id', $user->warung_id);
 
-        if ($filter === 'Hari Ini') {
+        // Rentang tanggal eksplisit (YYYY-MM-DD, inklusif) menggantikan filter
+        // bernama supaya unduhan hanya sebesar periode yang diminta.
+        if ($startDate || $endDate) {
+            if ($startDate && $endDate) {
+                $query->whereBetween('date', [$startDate, $endDate]);
+            } elseif ($startDate) {
+                $query->whereDate('date', '>=', $startDate);
+            } else {
+                $query->whereDate('date', '<=', $endDate);
+            }
+        } elseif ($filter === 'Hari Ini') {
             $query->whereDate('date', now()->toDateString());
         } elseif ($filter === 'Minggu Ini') {
-            $query->whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()]);
+            $query->whereBetween('date', [
+                now()->startOfWeek()->toDateString(),
+                now()->endOfWeek()->toDateString(),
+            ]);
         } elseif ($filter === 'Bulan Ini') {
             $query->whereMonth('date', now()->month)
                 ->whereYear('date', now()->year);
         } elseif ($filter === 'Bulan Lalu') {
-            $lastMonth = now()->subMonth();
+            $lastMonth = now()->subMonthNoOverflow();
             $query->whereMonth('date', $lastMonth->month)
                 ->whereYear('date', $lastMonth->year);
         }

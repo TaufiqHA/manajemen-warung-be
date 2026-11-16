@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Transaction;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -22,10 +23,32 @@ class TransactionController extends Controller
         $user = $request->user();
 
         $filter = $request->input('filter', 'Semua');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        // Offset zona perangkat (menit) agar rentang tanggal lokal pengguna
+        // dipetakan tepat ke jendela UTC `created_at`.
+        $tzOffset = (int) $request->input('tz_offset', 0);
         $query = Transaction::with(['cashier', 'items'])
             ->where('warung_id', $user->warung_id);
 
-        if ($filter === 'Hari Ini') {
+        // Rentang tanggal eksplisit (YYYY-MM-DD, inklusif). `created_at` berupa
+        // stempel waktu, jadi batasnya digeser offset lalu diperlebar ke akhir hari.
+        if ($startDate || $endDate) {
+            $rangeStart = $startDate
+                ? Carbon::parse($startDate)->startOfDay()->subMinutes($tzOffset)
+                : null;
+            $rangeEnd = $endDate
+                ? Carbon::parse($endDate)->endOfDay()->subMinutes($tzOffset)
+                : null;
+
+            if ($rangeStart && $rangeEnd) {
+                $query->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+            } elseif ($rangeStart) {
+                $query->where('created_at', '>=', $rangeStart);
+            } else {
+                $query->where('created_at', '<=', $rangeEnd);
+            }
+        } elseif ($filter === 'Hari Ini') {
             $query->whereDate('created_at', now()->toDateString());
         } elseif ($filter === 'Minggu Ini') {
             $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
